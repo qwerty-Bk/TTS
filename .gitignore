@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# heavy files
+tts/vocoder/waveglow_256channels_universal_v5.pt
+tts/vocoder/waveglow
+LJSpeech-1.1.tar.bz2
+LJSpeech-1.1
+waveglow_256channels_universal_v5.pt
