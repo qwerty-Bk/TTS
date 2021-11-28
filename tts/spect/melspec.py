@@ -69,4 +69,4 @@ def get_featurizer():
 
 def calc_mel_len(batch):
     mel_config = MelSpectrogramConfig()
-    return torch.ceil(batch.waveform_length / mel_config.hop_length)
+    return batch.waveform_length / mel_config.hop_length

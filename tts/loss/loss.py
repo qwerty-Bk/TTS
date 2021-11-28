@@ -11,6 +11,7 @@ class FastSpeechLoss(nn.Module):
     def forward(self, real_mel, pred_mel, real_dur, pred_dur):
         duration_loss = self.duration_loss(real_dur, pred_dur)
 
+        print(real_mel.shape, pred_mel.shape)
         if real_mel.shape[-1] < pred_mel.shape[-1]:
             mel_loss = self.mel_loss(real_mel, pred_mel[..., :real_mel.shape[-1]])
         else:

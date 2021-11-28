@@ -1,8 +1,5 @@
-import math
-
 from tts.dataloader.dataloader import get_dataloader
 from tts.spect.melspec import get_featurizer, calc_mel_len
-from itertools import islice
 from tts.vocoder.vocoder import Vocoder
 from tts.aligner.aligner import GraphemeAligner
 from tts.model.fastspeech import FastSpeech
@@ -10,12 +7,12 @@ from tts.optimizer.optimizer import NoamOpt
 from tts.loss.loss import FastSpeechLoss
 import config
 
-from IPython import display
 import torch
 from torch import nn
 import wandb
 import os
 from scipy.io import wavfile
+from random import randint
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -85,7 +82,7 @@ if __name__ == '__main__':
     aligner = GraphemeAligner().to(device)
     criterion = FastSpeechLoss()
 
-    train_dataloader = get_dataloader(batch_size=1, limit=1)
+    train_dataloader = get_dataloader(batch_size=3, limit=1)
 
     model.train()
 
@@ -95,11 +92,12 @@ if __name__ == '__main__':
         mel_running_loss, dur_running_loss = 0, 0
         for i, batch in enumerate(train_dataloader):
             optimizer.zero_grad()
-            batch.durations = aligner(
-                batch.waveform.to(device), batch.waveform_length, batch.transcript
-            )
-            sound_part = torch.sum(batch.durations, dim=1)
-            batch.durations /= sound_part.repeat(batch.durations.shape[-1], 1).transpose(0, 1)
+            with torch.no_grad():
+                batch.durations = aligner(
+                    batch.waveform.to(device), batch.waveform_length, batch.transcript
+                )
+            # sound_part = torch.sum(batch.durations, dim=1)
+            # batch.durations /= sound_part.repeat(batch.durations.shape[-1], 1).transpose(0, 1)
             mel_len = calc_mel_len(batch)
             batch.durations *= mel_len.repeat(batch.durations.shape[-1], 1).transpose(0, 1)
             mels = featurizer(batch.waveform)
@@ -118,19 +116,22 @@ if __name__ == '__main__':
             dur_running_loss += dur_loss.item()
 
             optimizer.step()
-            if (i + 1) % 1 == 0 and (epoch + 1) % 20 == 0:
+            if (i + 1) % 1 == 0:
                 wandb.log({'mel_loss': mel_running_loss, 'dur_loss': dur_running_loss, 'lr': optimizer.lr,
                            'loss': dur_running_loss + mel_running_loss})
+                print({'mel_loss': mel_running_loss, 'dur_loss': dur_running_loss, 'lr': optimizer.lr,
+                       'loss': dur_running_loss + mel_running_loss})
                 mel_running_loss, dur_running_loss = 0, 0
                 real_wav = vocoder.inference(mels)
                 pred_wav = vocoder.inference(output)
-                log_audio(real_wav[0], "real")
-                log_audio(pred_wav[0], "pred")
-            if epoch == config.epochs - 1:
-                print(mels)
-                print(output)
-                print('----')
-                print(batch.durations)
-                print(durations)
+                wav_i = randint(0, pred_wav.shape[0] - 1)
+                log_audio(pred_wav[wav_i], "pred")
+                log_audio(real_wav[wav_i], "real")
+            # if epoch == config.epochs - 1:
+            #     print(mels)
+            #     print(output)
+            #     print('----')
+            #     print(batch.durations)
+            #     print(durations)
 
         # break

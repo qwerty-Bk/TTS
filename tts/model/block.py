@@ -87,9 +87,9 @@ class DurationPredictor(nn.Module):
 
 
 def LR_function(x, _durations):
-    durations = torch.round(_durations).int()
     batch_size, leng, feats = x.shape
-    max_len = torch.max(torch.sum(durations, -1), -1)[0]
+    max_len = torch.max(torch.sum(_durations, -1), -1)[0]
+    durations = torch.round(_durations).int()
     output = torch.zeros((batch_size, max_len.cpu().int().item(), feats))
 
     for i in range(batch_size):
