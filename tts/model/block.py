@@ -2,6 +2,7 @@ from torch import nn
 from tts.model.attention import MultiHeadAttention
 import torch
 import config
+import math
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -74,7 +75,6 @@ class DurationPredictor(nn.Module):
             nn.Dropout(config.dropout),
 
             nn.Linear(config.dp_output_size, 1),
-
             nn.ReLU()
         )
 
@@ -95,8 +95,7 @@ def LR_function(x, _durations):
     for i in range(batch_size):
         count = 0
         for j in range(leng):
-            for k in range(durations[i][j]):
-                output[i][count + k] = x[i][j]
+            output[i][count:count + durations[i][j]] = x[i][j]
             count = count + durations[i][j]
 
     return output
@@ -118,6 +117,24 @@ class LengthRegulator(nn.Module):
         return output, durations
 
 
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model, max_len=5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=config.dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0)]
+        return self.dropout(x)
+
+
 def generate_attention_mask(seq):
     mask = seq.eq(0)
     mask = mask.unsqueeze(1).expand(-1, seq.shape[1], -1)
@@ -128,11 +145,13 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         self.sequential_encoding = nn.Embedding(config.vocab_size, config.encoder_input_size)
+        self.positional_encoding = PositionalEncoding(config.encoder_input_size)
         blocks = [FFTBlock() for i in range(config.encoder_layers)]
         self.layers = nn.Sequential(*blocks)
 
     def forward(self, sequence):
         output = self.sequential_encoding(sequence)
+        output = self.positional_encoding(output)
 
         mask_att = generate_attention_mask(sequence)
 
@@ -145,11 +164,13 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
+        self.positional_encoding = PositionalEncoding(config.encoder_input_size)
         blocks = [FFTBlock() for i in range(config.decoder_layers)]
         self.layers = nn.Sequential(*blocks)
 
     def forward(self, sequence):
         output = sequence.to(device)
+        output = self.positional_encoding(output)
 
         for layer in self.layers:
             output, _ = layer(output, mask_att=None)

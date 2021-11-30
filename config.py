@@ -32,8 +32,11 @@ linear_mel = 80
 
 dropout = 0.1
 
+opt = "noam"  # "noam", "oc"
 # Noam Optimizer
-warmup = 4000
+warmup = 1500
+# One Cycle
+max_lr = 3e-4
 
 # Training
 epochs = 80000

@@ -23,7 +23,10 @@ class MultiHeadAttention(nn.Module):
         assert in_feats % head_n == 0, f"in_features ({in_feats}) should be dividable by head_number ({head_n})"
         self.in_feats = in_feats
         self.head_n = head_n
-        self.linears = [nn.Linear(in_feats, in_feats).to(device) for i in range(4)]
+        self.lin_q = nn.Linear(in_feats, in_feats)
+        self.lin_k = nn.Linear(in_feats, in_feats)
+        self.lin_v = nn.Linear(in_feats, in_feats)
+        self.fc = nn.Linear(in_feats, in_feats)
         self.activation = activation
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(in_feats)
@@ -34,9 +37,9 @@ class MultiHeadAttention(nn.Module):
         feat_head = self.in_feats // self.head_n
         batch, leng, _ = q.shape
 
-        values = []
+        values, linears = [], [self.lin_q, self.lin_k, self.lin_v]
         for i, value in enumerate((q, k, v)):
-            value = self.linears[i](value)
+            value = linears[i](value)
             if self.activation is not None:
                 value = self.activation(value)
             value = value.reshape(batch, leng, self.head_n, feat_head)
@@ -52,7 +55,7 @@ class MultiHeadAttention(nn.Module):
         att_value = att_value.reshape(self.head_n, batch, leng, feat_head)\
             .permute(1, 2, 0, 3).reshape(batch, leng, self.head_n * feat_head)
 
-        att_value = self.linears[-1](att_value)
+        att_value = self.fc(att_value)
         if self.activation is not None:
             att_value = self.activation(att_value)
 
