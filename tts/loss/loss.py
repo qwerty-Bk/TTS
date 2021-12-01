@@ -8,6 +8,7 @@ class FastSpeechLoss(nn.Module):
         self.duration_loss = nn.MSELoss()
 
     def forward(self, real_mel, pred_mel, real_dur, pred_dur):
+        # print(real_dur.shape, pred_dur.shape)
         duration_loss = self.duration_loss(real_dur, pred_dur)
 
         # print(real_mel.shape, pred_mel.shape)

@@ -40,3 +40,7 @@ max_lr = 3e-4
 
 # Training
 epochs = 80000
+
+# Global
+sr = 22050
+log_wandb = True

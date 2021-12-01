@@ -7,6 +7,8 @@ from tts.aligner.aligner import GraphemeAligner
 from tts.model.fastspeech import FastSpeech
 from tts.optimizer.optimizer import NoamOpt
 from tts.loss.loss import FastSpeechLoss
+from tts.dataloader.ljspeech import TestDataset
+from tts.dataloader.collator import TestCollator
 import config
 
 import torch
@@ -25,9 +27,22 @@ else:
 
 def log_audio(wav, prefix):
     tmp_path = "tmp.wav"
-    wavfile.write(tmp_path, 22050, wav.cpu().numpy())
-    wandb.log({prefix + "audio": wandb.Audio(tmp_path, sample_rate=22050)})
+    wavfile.write(tmp_path, config.sr, wav.cpu().numpy())
+    wandb.log({prefix + "audio": wandb.Audio(tmp_path, sample_rate=config.sr)})
     os.remove(tmp_path)
+
+
+def validation(model, dataloader, log_audio=log_audio, vocoder=None):
+    for i, batch in enumerate(dataloader):
+        transcript, tokens, tokens_length = batch
+        tokens.to(device)
+        tokens_length.to(device)
+
+        output = model(tokens)
+
+        pred_wav = vocoder.inference(output)
+        for j in range(len(transcript)):
+            log_audio(pred_wav[j], transcript[j].split()[0])
 
 
 if __name__ == '__main__':
@@ -40,10 +55,11 @@ if __name__ == '__main__':
     criterion = FastSpeechLoss()
 
     train_dataloader = get_dataloader(batch_size=2, limit=1)
+    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=3, collate_fn=TestCollator)
 
-    adam_opt = torch.optim.Adam(model.parameters(),
-                                betas=(0.9, 0.98),
-                                eps=1e-9)
+    adam_opt = torch.optim.AdamW(model.parameters(),
+                                 betas=(0.9, 0.98),
+                                 eps=1e-9)
     if config.opt == "noam":
         optimizer = NoamOpt(adam_opt)
         scheduler = None
@@ -99,9 +115,11 @@ if __name__ == '__main__':
                     torch.save(model.state_dict(), "best_model")
 
                 mel_running_loss, dur_running_loss = 0, 0
-                real_wav = vocoder.inference(mels)
                 pred_wav = vocoder.inference(output)
                 wav_i = randint(0, pred_wav.shape[0] - 1)
                 log_audio(pred_wav[wav_i], "pred")
-                log_audio(real_wav[wav_i], "real")
+                log_audio(batch.waveform[wav_i], "real")
 
+                model.eval()
+                validation(model, test_dataloader, vocoder=vocoder)
+                model.train()

@@ -40,3 +40,18 @@ class LJSpeechCollator:
         token_lengths = torch.cat(token_lengths)
 
         return Batch(waveform, waveform_length, transcript, tokens, token_lengths)
+
+
+class TestCollator:
+
+    def __call__(self, instances: List[Tuple]):
+        transcript, tokens, token_lengths = list(
+            zip(*instances)
+        )
+
+        tokens = pad_sequence([
+            tokens_[0] for tokens_ in tokens
+        ]).transpose(0, 1)
+        token_lengths = torch.cat(token_lengths)
+
+        return transcript, tokens, token_lengths

@@ -41,3 +41,30 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
             ])
             result.append(text)
         return result
+
+
+class TestDataset:
+    def __init__(self, file):
+        super().__init__()
+        self._tokenizer = torchaudio.pipelines.TACOTRON2_GRIFFINLIM_CHAR_LJSPEECH.get_text_processor()
+        with open(file, 'r') as f:
+            self.sentences = f.readlines()
+
+    def __getitem__(self, index: int):
+        transcript = self.sentences[index]
+        tokens, token_lengths = self._tokenizer(transcript)
+
+        return transcript, tokens, token_lengths
+
+    def __len__(self):
+        return len(self.sentences)
+
+    def decode(self, tokens, lengths):
+        result = []
+        for tokens_, length in zip(tokens, lengths):
+            text = "".join([
+                self._tokenizer.tokens[token]
+                for token in tokens_[:length]
+            ])
+            result.append(text)
+        return result
