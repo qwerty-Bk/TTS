@@ -54,7 +54,7 @@ if __name__ == '__main__':
     aligner = GraphemeAligner().to(device)
     criterion = FastSpeechLoss()
 
-    train_dataloader = get_dataloader(batch_size=2, limit=1)
+    train_dataloader = get_dataloader(batch_size=config.batch_size, limit=config.limit)
     test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=3, collate_fn=TestCollator)
 
     adam_opt = torch.optim.AdamW(model.parameters(),

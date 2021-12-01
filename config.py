@@ -40,6 +40,8 @@ max_lr = 3e-4
 
 # Training
 epochs = 80000
+limit = -1
+batch_size = 3
 
 # Global
 sr = 22050
