@@ -18,6 +18,7 @@ import os
 from scipy.io import wavfile
 from random import randint
 from torch.optim.lr_scheduler import OneCycleLR
+from tqdm import tqdm
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -77,7 +78,7 @@ if __name__ == '__main__':
 
     for epoch in range(config.epochs):
         mel_running_loss, dur_running_loss = 0, 0
-        for i, batch in enumerate(train_dataloader):
+        for i, batch in tqdm(enumerate(train_dataloader)):
             optimizer.zero_grad()
             with torch.no_grad():
                 batch.durations = aligner(
@@ -99,7 +100,7 @@ if __name__ == '__main__':
             optimizer.step()
             if scheduler is not None:
                 scheduler.step()
-            if (i + 1) % 1 == 0:
+            if (i + 1) % config.log_every == 0:
                 wandb.log({'mel_loss': mel_running_loss, 'dur_loss': dur_running_loss,
                            'loss': dur_running_loss + mel_running_loss})
                 if config.opt == "noam":

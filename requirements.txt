@@ -10,3 +10,4 @@ numpy
 scipy
 ipython
 wandb
+tqdm

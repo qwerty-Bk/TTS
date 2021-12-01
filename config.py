@@ -46,3 +46,4 @@ batch_size = 3
 # Global
 sr = 22050
 log_wandb = True
+log_every = 10
