@@ -14,15 +14,11 @@ class FastSpeech(nn.Module):
         self.fc = nn.Linear(config.linear_input, config.linear_mel)
 
     def forward(self, sequence, durations=None):
-        # print(sequence.shape)
         output = self.encoder(sequence)
-        # print(output.shape)
 
         if self.training:
             output, pred_dur = self.len_reg(output, target=durations)
-            # print(output.shape)
             output = self.decoder(output)
-            # print(output.shape)
             output = self.fc(output).transpose(1, 2)
             return output, pred_dur.squeeze(-1)
 

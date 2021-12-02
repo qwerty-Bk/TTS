@@ -101,6 +101,8 @@ if __name__ == '__main__':
             if scheduler is not None:
                 scheduler.step()
             if (i + 1) % config.log_every == 0:
+                mel_running_loss, dur_running_loss = mel_running_loss / config.log_every, \
+                                                     dur_running_loss / config.log_every
                 wandb.log({'mel_loss': mel_running_loss, 'dur_loss': dur_running_loss,
                            'loss': dur_running_loss + mel_running_loss})
                 if config.opt == "noam":
