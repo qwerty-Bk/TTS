@@ -19,6 +19,7 @@ from scipy.io import wavfile
 from random import randint
 from torch.optim.lr_scheduler import OneCycleLR
 from tqdm import tqdm
+from torch.nn.utils import clip_grad_norm_
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -33,7 +34,7 @@ def log_audio(wav, prefix):
     os.remove(tmp_path)
 
 
-def validation(model, dataloader, log_audio=log_audio, vocoder=None):
+def validation(model, dataloader, log_audio=log_audio, vocoder=None, log_all=False):
     for i, batch in enumerate(dataloader):
         transcript, tokens, tokens_length = batch
         tokens.to(device)
@@ -42,8 +43,12 @@ def validation(model, dataloader, log_audio=log_audio, vocoder=None):
         output = model(tokens)
 
         pred_wav = vocoder.inference(output)
-        for j in range(len(transcript)):
-            log_audio(pred_wav[j], transcript[j].split()[0])
+        if log_all:
+            for j in range(len(transcript)):
+                log_audio(pred_wav[j], transcript[j].split()[0])
+        else:
+            wav_i = randint(0, len(transcript) - 1)
+            log_audio(pred_wav[wav_i], transcript[wav_i].split()[0])
 
 
 if __name__ == '__main__':
@@ -56,7 +61,7 @@ if __name__ == '__main__':
     criterion = FastSpeechLoss()
 
     train_dataloader = get_dataloader(batch_size=config.batch_size, limit=config.limit)
-    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=3, collate_fn=TestCollator)
+    val_dataloader = get_dataloader(TestDataset, "validation.txt", batch_size=5, collate_fn=TestCollator)
 
     adam_opt = torch.optim.AdamW(model.parameters(),
                                  betas=(0.9, 0.98),
@@ -94,6 +99,7 @@ if __name__ == '__main__':
             mel_loss, dur_loss = criterion(mels, output, batch.durations, durations)
             loss = mel_loss + dur_loss
             loss.backward()
+            clip_grad_norm_(model.parameters(), config.clip_grad)
             mel_running_loss += mel_loss.item()
             dur_running_loss += dur_loss.item()
 
@@ -124,5 +130,5 @@ if __name__ == '__main__':
                 log_audio(batch.waveform[wav_i], "real")
 
                 model.eval()
-                validation(model, test_dataloader, vocoder=vocoder)
+                validation(model, val_dataloader, vocoder=vocoder)
                 model.train()

@@ -34,16 +34,18 @@ dropout = 0.1
 
 opt = "noam"  # "noam", "oc"
 # Noam Optimizer
-warmup = 1500
+warmup = 4000
+opt_scale = 0.7
 # One Cycle
-max_lr = 3e-4
+max_lr = 2e-4
 
 # Training
 epochs = 80000
 limit = -1
-batch_size = 3
+batch_size = 4
+clip_grad = 5
 
 # Global
 sr = 22050
 log_wandb = True
-log_every = 100
+log_every = 500

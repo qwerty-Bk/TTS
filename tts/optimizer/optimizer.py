@@ -11,7 +11,7 @@ class NoamOpt:  # follows the one
 
     def step(self):
         self.n += 1
-        self.lr = self.d_model ** (-0.5) * min(self.n ** (-0.5), self.n * self.warmup ** (-1.5))
+        self.lr = self.d_model ** (-0.5) * min(self.n ** (-0.5), self.n * self.warmup ** (-1.5)) * config.opt_scale
         for p in self.optimizer.param_groups:
             p['lr'] = self.lr
         self.optimizer.step()

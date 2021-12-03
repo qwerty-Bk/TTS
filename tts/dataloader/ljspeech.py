@@ -3,7 +3,6 @@ import torch
 import wget
 import tarfile
 from pathlib import Path
-import re
 
 
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
@@ -17,7 +16,7 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
         waveform, _, _, transcript = super().__getitem__(index)
         waveform_length = torch.tensor([waveform.shape[-1]]).int()
 
-        transcript = re.sub(r"[^a-zA-Z ,.]+", "", transcript)
+        transcript = transcript.replace('"', '').replace('â', 'a')
         tokens, token_lengths = self._tokenizer(transcript)
 
         return waveform, waveform_length, transcript, tokens, token_lengths
@@ -54,7 +53,7 @@ class TestDataset:
 
     def __getitem__(self, index: int):
         transcript = self.sentences[index]
-        transcript = re.sub(r"[^a-zA-Z ,.]+", "", transcript)
+        transcript = transcript.replace('"', '').replace('â', 'a')
         tokens, token_lengths = self._tokenizer(transcript)
 
         return transcript, tokens, token_lengths

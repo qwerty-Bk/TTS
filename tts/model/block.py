@@ -64,18 +64,17 @@ class DurationPredictor(nn.Module):
         self.conv = nn.Sequential(
             Conv(config.dp_input_size, config.dp_hidden_size, kernel_size=config.dp_kernel_size,
                  padding=config.dp_kernel_size // 2),
-            nn.LayerNorm(config.dp_hidden_size),
             nn.ReLU(),
+            nn.LayerNorm(config.dp_hidden_size),
             nn.Dropout(config.dropout),
 
             Conv(config.dp_hidden_size, config.dp_output_size, kernel_size=config.dp_kernel_size,
                  padding=config.dp_kernel_size // 2),
-            nn.LayerNorm(config.dp_output_size),
             nn.ReLU(),
+            nn.LayerNorm(config.dp_output_size),
             nn.Dropout(config.dropout),
 
-            nn.Linear(config.dp_output_size, 1),
-            nn.ReLU()
+            nn.Linear(config.dp_output_size, 1)
         )
 
     def forward(self, input):
@@ -90,8 +89,6 @@ def LR_function(x, _durations):
     batch_size, leng, feats = x.shape
     max_len = torch.max(torch.sum(_durations, -1), -1)[0]
     durations = torch.round(_durations).int()
-    # print(_durations.shape)
-    # print(max_len)
     output = torch.zeros((batch_size, max_len.cpu().int().item(), feats))
 
     for i in range(batch_size):
