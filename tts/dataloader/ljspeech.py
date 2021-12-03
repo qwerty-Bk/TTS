@@ -5,6 +5,15 @@ import tarfile
 from pathlib import Path
 
 
+def text_clean(text):
+    bad = list('"üêàéâè“”’[]')
+    good = [''] + list('ueaeae') + ['', '', "'", '', '']
+    replace_dict = dict(zip(bad, good))
+    for key in replace_dict.keys():
+        text = text.replace(key, replace_dict[key])
+    return text
+
+
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
     def __init__(self, root):
@@ -16,7 +25,7 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
         waveform, _, _, transcript = super().__getitem__(index)
         waveform_length = torch.tensor([waveform.shape[-1]]).int()
 
-        transcript = transcript.replace('"', '').replace('â', 'a')
+        transcript = text_clean(transcript)
         tokens, token_lengths = self._tokenizer(transcript)
 
         return waveform, waveform_length, transcript, tokens, token_lengths
@@ -53,7 +62,7 @@ class TestDataset:
 
     def __getitem__(self, index: int):
         transcript = self.sentences[index]
-        transcript = transcript.replace('"', '').replace('â', 'a')
+        transcript = text_clean(transcript)
         tokens, token_lengths = self._tokenizer(transcript)
 
         return transcript, tokens, token_lengths

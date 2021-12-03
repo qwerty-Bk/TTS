@@ -40,7 +40,7 @@ def validation(model, dataloader, log_audio=log_audio, vocoder=None, log_all=Fal
         tokens.to(device)
         tokens_length.to(device)
 
-        output = model(tokens)
+        output = model(tokens, seq_length=tokens_length)
 
         pred_wav = vocoder.inference(output)
         if log_all:
@@ -48,7 +48,7 @@ def validation(model, dataloader, log_audio=log_audio, vocoder=None, log_all=Fal
                 log_audio(pred_wav[j], transcript[j].split()[0])
         else:
             wav_i = randint(0, len(transcript) - 1)
-            log_audio(pred_wav[wav_i], transcript[wav_i].split()[0])
+            log_audio(pred_wav[wav_i], 'valid')
 
 
 if __name__ == '__main__':
@@ -96,7 +96,11 @@ if __name__ == '__main__':
             batch.to(device)
             output, durations = model(batch.tokens, batch.durations)
 
-            mel_loss, dur_loss = criterion(mels, output, batch.durations, durations)
+            if config.log_loss:
+                durations_log = torch.log(batch.durations + batch.durations.eq(0).float())
+            else:
+                durations_log = batch.durations
+            mel_loss, dur_loss = criterion(mels, output, durations_log, durations)
             loss = mel_loss + dur_loss
             loss.backward()
             clip_grad_norm_(model.parameters(), config.clip_grad)

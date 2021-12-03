@@ -105,11 +105,16 @@ class LengthRegulator(nn.Module):
         super(LengthRegulator, self).__init__()
         self.duration_pred = DurationPredictor()
 
-    def forward(self, input, target=None):
-        durations = self.duration_pred(input).exp()
+    def forward(self, input, target=None, seq_length=None):
+        durations = self.duration_pred(input)
 
         if target is None:
-            output = LR_function(input, durations.squeeze(-1))
+            durations = torch.exp(durations.squeeze(-1))
+            if config.log_loss:
+                max_len = torch.max(seq_length).item()
+                dur_mask = torch.arange(max_len).expand(len(seq_length), max_len).to(device) < seq_length.unsqueeze(1)
+                durations *= dur_mask
+            output = LR_function(input, durations)
             return output, durations
 
         output = LR_function(input, target)

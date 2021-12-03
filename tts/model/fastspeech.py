@@ -13,7 +13,7 @@ class FastSpeech(nn.Module):
         self.decoder = Decoder()
         self.fc = nn.Linear(config.linear_input, config.linear_mel)
 
-    def forward(self, sequence, durations=None):
+    def forward(self, sequence, durations=None, seq_length=None):
         output = self.encoder(sequence)
 
         if self.training:
@@ -22,7 +22,7 @@ class FastSpeech(nn.Module):
             output = self.fc(output).transpose(1, 2)
             return output, pred_dur.squeeze(-1)
 
-        output, pred_dur = self.len_reg(output)
+        output, pred_dur = self.len_reg(output, seq_length=seq_length)
         output = self.decoder(output)
         output = self.fc(output).transpose(1, 2)
         return output

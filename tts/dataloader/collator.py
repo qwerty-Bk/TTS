@@ -2,7 +2,6 @@ from typing import Tuple, Optional, List
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from dataclasses import dataclass
-# from tts.spect.melspec import get_featurizer
 
 
 @dataclass
