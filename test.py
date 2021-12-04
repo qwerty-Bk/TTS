@@ -24,12 +24,12 @@ def log_audio(wav, prefix):
 
 if __name__ == '__main__':
     model = nn.DataParallel(FastSpeech()).to(device)
-    model.load_state_dict(torch.load("cp_model", map_location=device))
+    model.load_state_dict(torch.load("best_model", map_location=device))
     featurizer = get_featurizer()
     vocoder = Vocoder().to(device).eval()
     aligner = GraphemeAligner().to(device)
 
-    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=3, collate_fn=TestCollator)
+    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=2, collate_fn=TestCollator)
 
     model.eval()
-    validation(model, test_dataloader, log_audio, vocoder=vocoder)
+    validation(model, test_dataloader, log_audio, vocoder=vocoder, log_all=True)

@@ -3,6 +3,8 @@ import torch
 import wget
 import tarfile
 from pathlib import Path
+import config
+from tts.aligner.aligner import PretrainedAligner
 
 
 def text_clean(text):
@@ -11,6 +13,8 @@ def text_clean(text):
     replace_dict = dict(zip(bad, good))
     for key in replace_dict.keys():
         text = text.replace(key, replace_dict[key])
+    if config.aligner == "pretrained":
+        text = text.replace('Mr.', 'Mister').replace('Hon.', 'Honorable').replace('Mrs.', 'Missus')
     return text
 
 
@@ -20,6 +24,8 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
         self.load()
         super().__init__(root=root)
         self._tokenizer = torchaudio.pipelines.TACOTRON2_GRIFFINLIM_CHAR_LJSPEECH.get_text_processor()
+        if config.aligner == "pretrained":
+            self._aligner = PretrainedAligner()
 
     def __getitem__(self, index: int):
         waveform, _, _, transcript = super().__getitem__(index)
@@ -27,6 +33,9 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
         transcript = text_clean(transcript)
         tokens, token_lengths = self._tokenizer(transcript)
+
+        if config.aligner == "pretrained":
+            return waveform, waveform_length, transcript, tokens, token_lengths, self._aligner(index)
 
         return waveform, waveform_length, transcript, tokens, token_lengths
 

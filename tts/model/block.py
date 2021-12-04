@@ -85,10 +85,13 @@ class DurationPredictor(nn.Module):
         return output
 
 
-def LR_function(x, _durations):
+def LR_function(x, _durations, valid=False):
     batch_size, leng, feats = x.shape
     max_len = torch.max(torch.sum(_durations, -1), -1)[0]
-    durations = torch.round(_durations).int()
+    if config.aligner != "pretrained" or valid:
+        durations = torch.round(_durations).int()
+    else:
+        durations = _durations
     output = torch.zeros((batch_size, max_len.cpu().int().item(), feats))
 
     for i in range(batch_size):
@@ -114,7 +117,7 @@ class LengthRegulator(nn.Module):
                 max_len = torch.max(seq_length).item()
                 dur_mask = torch.arange(max_len).expand(len(seq_length), max_len).to(device) < seq_length.unsqueeze(1)
                 durations *= dur_mask
-            output = LR_function(input, durations)
+            output = LR_function(input, durations, True)
             return output, durations
 
         output = LR_function(input, target)

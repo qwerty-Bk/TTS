@@ -32,17 +32,20 @@ linear_mel = 80
 
 dropout = 0.1
 
+aligner = "pretrained"  # "pretrained", "grapheme"
+
 opt = "noam"  # "noam", "oc"
 # Noam Optimizer
 warmup = 4000
 opt_scale = 0.5
 # One Cycle
-max_lr = 4e-4
+max_lr = 5e-4
+pct_start = 0.1
 
 # Training
-epochs = 80000
+epochs = 150
 limit = -1
-batch_size = 3
+batch_size = 4
 clip_grad = 5
 log_loss = True
 
@@ -50,3 +53,4 @@ log_loss = True
 sr = 22050
 log_wandb = True
 log_every = 500
+

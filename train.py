@@ -51,7 +51,17 @@ def validation(model, dataloader, log_audio=log_audio, vocoder=None, log_all=Fal
             log_audio(pred_wav[wav_i], 'valid')
 
 
+def tbd():
+    dl = get_dataloader(batch_size=3)
+    for i, batch in enumerate(dl):
+        mel_len = calc_mel_len(batch)
+        print(i,  batch.durations.sum(1), mel_len)
+        break
+
+
 if __name__ == '__main__':
+    # tbd()
+    # 1 / 0
     model = nn.DataParallel(FastSpeech()).to(device)
     # print(model)
     print(sum(param.numel() for param in model.parameters()))
@@ -63,15 +73,15 @@ if __name__ == '__main__':
     train_dataloader = get_dataloader(batch_size=config.batch_size, limit=config.limit)
     val_dataloader = get_dataloader(TestDataset, "validation.txt", batch_size=5, collate_fn=TestCollator)
 
-    adam_opt = torch.optim.AdamW(model.parameters(),
-                                 betas=(0.9, 0.98),
-                                 eps=1e-9)
+    adam_opt = torch.optim.Adam(model.parameters(),
+                                betas=(0.9, 0.98),
+                                eps=1e-9)
     if config.opt == "noam":
         optimizer = NoamOpt(adam_opt)
         scheduler = None
     elif config.opt == "oc":
         optimizer = adam_opt
-        scheduler = OneCycleLR(optimizer, config.max_lr, config.epochs * len(train_dataloader))
+        scheduler = OneCycleLR(optimizer, config.max_lr, config.epochs * len(train_dataloader), pct_start=config.pct_start)
     else:
         raise ValueError()
 
@@ -85,15 +95,19 @@ if __name__ == '__main__':
         mel_running_loss, dur_running_loss = 0, 0
         for i, batch in tqdm(enumerate(train_dataloader)):
             optimizer.zero_grad()
-            with torch.no_grad():
-                batch.durations = aligner(
-                    batch.waveform.to(device), batch.waveform_length, batch.transcript
-                )
-            mel_len = calc_mel_len(batch)
-            batch.durations *= mel_len.repeat(batch.durations.shape[-1], 1).transpose(0, 1)
+            if config.aligner != "pretrained":
+                with torch.no_grad():
+                    batch.durations = aligner(
+                        batch.waveform.to(device), batch.waveform_length, batch.transcript
+                    )
+                mel_len = calc_mel_len(batch)
+                batch.durations *= mel_len.repeat(batch.durations.shape[-1], 1).transpose(0, 1)
             mels = featurizer(batch.waveform)
             mels = mels.to(device)
             batch.to(device)
+            if batch.tokens.shape[-1] != batch.durations.shape[-1]:
+                print(batch.transcript)
+                continue
             output, durations = model(batch.tokens, batch.durations)
 
             if config.log_loss:
@@ -136,3 +150,4 @@ if __name__ == '__main__':
                 model.eval()
                 validation(model, val_dataloader, vocoder=vocoder)
                 model.train()
+        wandb.log({"epoch": epoch})

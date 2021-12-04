@@ -2,6 +2,7 @@ from typing import Tuple, Optional, List
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from dataclasses import dataclass
+import config
 
 
 @dataclass
@@ -24,9 +25,14 @@ class Batch:
 class LJSpeechCollator:
 
     def __call__(self, instances: List[Tuple]) -> Batch:
-        waveform, waveform_length, transcript, tokens, token_lengths = list(
-            zip(*instances)
-        )
+        if config.aligner != "pretrained":
+            waveform, waveform_length, transcript, tokens, token_lengths = list(
+                zip(*instances)
+            )
+        else:
+            waveform, waveform_length, transcript, tokens, token_lengths, durations = list(
+                zip(*instances)
+            )
 
         waveform = pad_sequence([
             waveform_[0] for waveform_ in waveform
@@ -38,7 +44,12 @@ class LJSpeechCollator:
         ]).transpose(0, 1)
         token_lengths = torch.cat(token_lengths)
 
-        return Batch(waveform, waveform_length, transcript, tokens, token_lengths)
+        if config.aligner != "pretrained":
+            return Batch(waveform, waveform_length, transcript, tokens, token_lengths)
+
+        # print(durations)
+        durations = pad_sequence(durations).transpose(0, 1)
+        return Batch(waveform, waveform_length, transcript, tokens, token_lengths, durations)
 
 
 class TestCollator:

@@ -5,6 +5,8 @@ from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
 from torch import nn
 from typing import Union, List
+import numpy as np
+import os
 
 from tts.spect.melspec import MelSpectrogramConfig
 
@@ -170,3 +172,16 @@ class GraphemeAligner(nn.Module):
         for i, p in enumerate(path):
             trellis_with_path[p.time_index, p.token_index] = float('nan')
         plt.imshow(trellis_with_path[1:, 1:].T, origin='lower')
+
+
+class PretrainedAligner(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self.directory_path = 'tts/aligner/alignments/'
+
+    @torch.no_grad()
+    def forward(self, index):
+        duration = np.load(os.path.join(self.directory_path, str(index) + ".npy"))
+        return torch.from_numpy(duration)
