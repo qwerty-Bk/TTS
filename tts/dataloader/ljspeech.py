@@ -13,8 +13,12 @@ def text_clean(text):
     replace_dict = dict(zip(bad, good))
     for key in replace_dict.keys():
         text = text.replace(key, replace_dict[key])
-    if config.aligner == "pretrained":
-        text = text.replace('Mr.', 'Mister').replace('Hon.', 'Honorable').replace('Mrs.', 'Missus')
+    abbr = {'Mr.': 'Mister', 'Hon.': 'Honorable', 'Mrs.': 'Missus', 'St.': 'Saint', 'Dr.': 'Doctor', 'Drs.': 'Doctors',
+            'Rev.': 'Reverend', 'Co.': 'Company', 'Maj. Gen.': 'Major General', 'Sgt.': 'Sergeant', 'Capt.': 'Captain',
+            "No.": "Number", "Jr.": "Junior", "Gen.": "General", "Lt.": "Lieutenant", "Maj.": "Major", "Esq.": "Esquire",
+            "Ltd.": "Limited", "Ft.": "Fort"}
+    for key in abbr.keys():
+        text = text.replace(key, abbr[key])
     return text
 
 
@@ -31,6 +35,8 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
         waveform, _, _, transcript = super().__getitem__(index)
         waveform_length = torch.tensor([waveform.shape[-1]]).int()
 
+        if text_clean(transcript) != transcript:
+            print('a', end='')
         transcript = text_clean(transcript)
         tokens, token_lengths = self._tokenizer(transcript)
 

@@ -45,23 +45,13 @@ def validation(model, dataloader, log_audio=log_audio, vocoder=None, log_all=Fal
         pred_wav = vocoder.inference(output)
         if log_all:
             for j in range(len(transcript)):
-                log_audio(pred_wav[j], transcript[j].split()[0])
+                log_audio(pred_wav[j], str(i) + '_' + str(j) + '_')
         else:
             wav_i = randint(0, len(transcript) - 1)
             log_audio(pred_wav[wav_i], 'valid')
 
 
-def tbd():
-    dl = get_dataloader(batch_size=3)
-    for i, batch in enumerate(dl):
-        mel_len = calc_mel_len(batch)
-        print(i,  batch.durations.sum(1), mel_len)
-        break
-
-
 if __name__ == '__main__':
-    # tbd()
-    # 1 / 0
     model = nn.DataParallel(FastSpeech()).to(device)
     # print(model)
     print(sum(param.numel() for param in model.parameters()))

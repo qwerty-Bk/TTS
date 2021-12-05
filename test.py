@@ -29,7 +29,7 @@ if __name__ == '__main__':
     vocoder = Vocoder().to(device).eval()
     aligner = GraphemeAligner().to(device)
 
-    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=2, collate_fn=TestCollator)
+    test_dataloader = get_dataloader(TestDataset, "test.txt", batch_size=1, collate_fn=TestCollator)
 
     model.eval()
     validation(model, test_dataloader, log_audio, vocoder=vocoder, log_all=True)

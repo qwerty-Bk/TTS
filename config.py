@@ -43,7 +43,7 @@ max_lr = 5e-4
 pct_start = 0.1
 
 # Training
-epochs = 150
+epochs = 90
 limit = -1
 batch_size = 4
 clip_grad = 5
